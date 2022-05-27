@@ -18,6 +18,7 @@ async function run() {
     await client.connect();
     console.log("partsDb connected...")
     const partsCollection = client.db("partsDB").collection("parts");
+    const ordersCollection = client.db("partsDB").collection("orders");
 
     // get all the parts api 
     app.get('/parts', async (req, res) => {
@@ -34,6 +35,23 @@ async function run() {
       const part = await partsCollection.findOne(query);
       res.send(part);
     })
+
+    // post the order 
+    app.post('/order', async (req, res) => {
+      const newOrder = req.body;
+      const result = await ordersCollection.insertOne(newOrder);
+      res.send(result);
+    })
+
+    // get the individual persons orders 
+    // app.get('/myorder', async (req, res) => {
+    //   const email = req.query.email;
+    //   const query = { patientEmail: email };
+    //   const cursor = bookingsCollection.find(query);
+    //   const bookings = await cursor.toArray();
+    //   return res.send(bookings);
+
+    // })
 
 
 
