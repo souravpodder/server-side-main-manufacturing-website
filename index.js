@@ -44,17 +44,21 @@ async function run() {
     })
 
     // get the individual persons orders 
-    // app.get('/myorder', async (req, res) => {
-    //   const email = req.query.email;
-    //   const query = { patientEmail: email };
-    //   const cursor = bookingsCollection.find(query);
-    //   const bookings = await cursor.toArray();
-    //   return res.send(bookings);
+    app.get('/myorders', async (req, res) => {
+      const email = req.query.email;
+      const query = { email: email };
+      const cursor = ordersCollection.find(query);
+      const orders = await cursor.toArray();
+      return res.send(orders);
+    })
 
-    // })
-
-
-
+    // delete a single order 
+    app.delete('/order/:id', async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: ObjectId(id) };
+      const result = await ordersCollection.deleteOne(query);
+      res.send(result);
+    })
 
 
   } finally {
