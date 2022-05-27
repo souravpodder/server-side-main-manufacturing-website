@@ -19,6 +19,7 @@ async function run() {
     console.log("partsDb connected...")
     const partsCollection = client.db("partsDB").collection("parts");
     const ordersCollection = client.db("partsDB").collection("orders");
+    const reviewsCollection = client.db("partsDB").collection("reviews");
 
     // get all the parts api 
     app.get('/parts', async (req, res) => {
@@ -59,6 +60,25 @@ async function run() {
       const result = await ordersCollection.deleteOne(query);
       res.send(result);
     })
+
+    // Review apis 
+
+    // Add a review 
+    app.post('/addreview', async (req, res) => {
+      const review = req.body;
+      const result = await reviewsCollection.insertOne(review);
+      res.send(result);
+    })
+
+    //get all reviews
+    app.get('/reviews', async (req, res) => {
+      const query = {};
+      const cursor = reviewsCollection.find(query);
+      const result = await cursor.toArray();
+      res.send(result);
+    })
+
+
 
 
   } finally {
