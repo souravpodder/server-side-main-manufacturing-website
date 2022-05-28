@@ -165,14 +165,6 @@ async function run() {
       })
     })
 
-    app.get('/payment/:id', async (req, res) => {
-      const id = req.params.id;
-      const query = { order: id };
-      const payment = await paymentsCollection.findOne(query);
-      res.send(payment);
-    })
-
-
     app.patch('/order/:id', async (req, res) => {
       const id = req.params.id;
       const payment = req.body;
