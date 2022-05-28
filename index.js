@@ -20,6 +20,38 @@ async function run() {
     const partsCollection = client.db("partsDB").collection("parts");
     const ordersCollection = client.db("partsDB").collection("orders");
     const reviewsCollection = client.db("partsDB").collection("reviews");
+    const usersCollection = client.db("partsDB").collection("users");
+
+    //set the loggedin or signup user in users collection 
+    app.put('/user/:email', async (req, res) => {
+      const email = req.params.email;
+      const user = req.body;
+      const filter = { email: email };
+      const options = { upsert: true };
+
+      const updateDoc = {
+        $set: user
+      };
+      const result = await usersCollection.updateOne(filter, updateDoc, options);
+      res.send(result);
+    })
+
+    // get all the users 
+    app.get('/users', async (req, res) => {
+      const query = {};
+      const cursor = usersCollection.find(query);
+      const result = await cursor.toArray();
+      res.send(result);
+    })
+
+
+    // get a single user info 
+    app.get('/user/:email', async (req, res) => {
+      const email = req.params.email;
+      const query = { email };
+      const part = await usersCollection.findOne(query);
+      res.send(part);
+    })
 
     // get all the parts api 
     app.get('/parts', async (req, res) => {
@@ -28,6 +60,14 @@ async function run() {
       const result = await cursor.toArray();
       res.send(result);
     })
+
+    // add a part 
+    app.post('/part', async (req, res) => {
+      const newPart = req.body;
+      const result = await partsCollection.insertOne(newPart);
+      res.send(result);
+    })
+
 
     // get a single part 
     app.get('/part/:id', async (req, res) => {
@@ -76,6 +116,27 @@ async function run() {
       const cursor = reviewsCollection.find(query);
       const result = await cursor.toArray();
       res.send(result);
+    })
+
+    // admin related apis 
+    // check if user is admin by get method 
+    app.get('/admin/:email', async (req, res) => {
+      const email = req.params.email;
+      const user = await usersCollection.findOne({ email: email });
+      const isAdmin = user.role === 'admin';
+      res.send({ admin: isAdmin });
+    })
+
+    // make a role as admin 
+    app.put('/user/admin/:email', async (req, res) => {
+      const email = req.params.email;
+      const filter = { email: email };
+      const updateDoc = {
+        $set: { role: 'admin' }
+      };
+      const result = await usersCollection.updateOne(filter, updateDoc);
+      res.send(result);
+
     })
 
 
