@@ -86,11 +86,20 @@ async function run() {
       res.send(result);
     })
 
+    // get all the orders 
+    app.get('/orders', async (req, res) => {
+      const query = {};
+      const cursor = ordersCollection.find(query);
+      const result = await cursor.toArray();
+      res.send(result);
+    })
+
+
     // get the individual persons orders 
     app.get('/myorders', async (req, res) => {
       const email = req.query.email;
       const query = { email: email };
-      const cursor = ordersCollection.find(query);
+      const cursor = ordersCollection.find(query)
       const orders = await cursor.toArray();
       return res.send(orders);
     })
@@ -173,13 +182,35 @@ async function run() {
       const updatedDoc = {
         $set: {
           paid: true,
-          transactionId: payment.transactionId
+          transactionId: payment.transactionId,
+          status: payment.status
         }
       }
       const result = await paymentsCollection.insertOne(payment);
       const updatedBooking = await ordersCollection.updateOne(filter, updatedDoc);
       res.send(updatedDoc);
     })
+
+    // update the status to shipped 
+    app.put('/order/shipment/:id', async (req, res) => {
+      const id = req.params.id;
+      const updatedStatus = req.body;
+      // console.log(updatedStatus);
+      const filter = { _id: ObjectId(id) };
+      const options = { upsert: true };
+
+      const updateDoc = {
+        $set: {
+          status: updatedStatus.status
+        }
+      }
+
+      const result = await ordersCollection.updateOne(filter, updateDoc, options);
+      res.send(result);
+
+    })
+
+
 
 
   } finally {
