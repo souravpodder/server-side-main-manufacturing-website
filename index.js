@@ -3,6 +3,7 @@ const cors = require('cors');
 const app = express();
 const port = process.env.PORT || 5000;
 require('dotenv').config();
+const jwt = require('jsonwebtoken');
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 
@@ -35,7 +36,8 @@ async function run() {
         $set: user
       };
       const result = await usersCollection.updateOne(filter, updateDoc, options);
-      res.send(result);
+      const token = jwt.sign({ email: email }, process.env.ACCESS_TOKEN_SECRET);
+      res.send({ result, token });
     })
 
     // get all the users 
