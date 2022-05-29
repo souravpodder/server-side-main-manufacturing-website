@@ -11,8 +11,28 @@ app.use(cors());
 app.use(express.json());
 
 
-const uri = "mongodb+srv://parts_user:HSwcnx6mJhINi5wX@cluster0.9ri7q.mongodb.net/?retryWrites=true&w=majority";
+const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.9ri7q.mongodb.net/?retryWrites=true&w=majority`;
 const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true, serverApi: ServerApiVersion.v1 });
+
+function verifyJWT(req, res, next) {
+  const authHeader = req.headers.authorization;
+  console.log(authHeader);
+  if (!authHeader) {
+    return res.status(401).send({ message: 'Unauthorized Access' });
+  }
+
+  const token = authHeader.split(' ')[1];
+
+  jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, function (err, decoded) {
+    if (err) {
+      return res.status(403).send({ message: 'Forbidden Access' });
+    }
+
+    req.decoded = decoded;
+    next();
+  });
+
+}
 
 
 async function run() {
@@ -24,6 +44,7 @@ async function run() {
     const reviewsCollection = client.db("partsDB").collection("reviews");
     const usersCollection = client.db("partsDB").collection("users");
     const paymentsCollection = client.db("partsDB").collection('payments');
+
 
     //set the loggedin or signup user in users collection 
     app.put('/user/:email', async (req, res) => {
@@ -40,8 +61,19 @@ async function run() {
       res.send({ result, token });
     })
 
+    const verifyAdmin = async (req, res, next) => {
+      const requesterEmail = req.decoded.email;
+      const requesterAccount = await usersCollection.findOne({ email: requesterEmail });
+
+      if (requesterAccount.role === 'admin') {
+        next();
+      } else {
+        res.status(403).send({ message: 'forbidden access' })
+      }
+    }
+
     // get all the users 
-    app.get('/users', async (req, res) => {
+    app.get('/users', verifyJWT, verifyAdmin, async (req, res) => {
       const query = {};
       const cursor = usersCollection.find(query);
       const result = await cursor.toArray();
@@ -66,7 +98,7 @@ async function run() {
     })
 
     // add a part 
-    app.post('/part', async (req, res) => {
+    app.post('/part', verifyJWT, verifyAdmin, async (req, res) => {
       const newPart = req.body;
       const result = await partsCollection.insertOne(newPart);
       res.send(result);
@@ -81,6 +113,15 @@ async function run() {
       res.send(part);
     })
 
+    // delete a part 
+
+    app.delete('/part/:id', verifyJWT, verifyAdmin, async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: ObjectId(id) };
+      const result = await partsCollection.deleteOne(query);
+      res.send(result);
+    })
+
     // post the order 
     app.post('/order', async (req, res) => {
       const newOrder = req.body;
@@ -88,31 +129,24 @@ async function run() {
       res.send(result);
     })
 
+
     // get all the orders 
-    app.get('/orders', async (req, res) => {
+    app.get('/orders', verifyJWT, verifyAdmin, async (req, res) => {
       const query = {};
       const cursor = ordersCollection.find(query);
       const result = await cursor.toArray();
       res.send(result);
     })
 
-    // delete a part 
-
-    app.delete('/part/:id', async (req, res) => {
-      const id = req.params.id;
-      const query = { _id: ObjectId(id) };
-      const result = await partsCollection.deleteOne(query);
-      res.send(result);
-    })
 
 
     // get the individual persons orders 
-    app.get('/myorders', async (req, res) => {
+    app.get('/myorders', verifyJWT, async (req, res) => {
       const email = req.query.email;
       const query = { email: email };
       const cursor = ordersCollection.find(query)
       const orders = await cursor.toArray();
-      return res.send(orders);
+      res.send(orders);
     })
 
     // delete a single order 
@@ -126,7 +160,7 @@ async function run() {
     // Review apis 
 
     // Add a review 
-    app.post('/addreview', async (req, res) => {
+    app.post('/addreview', verifyJWT, async (req, res) => {
       const review = req.body;
       const result = await reviewsCollection.insertOne(review);
       res.send(result);
